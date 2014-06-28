@@ -2,7 +2,9 @@
  * Functions to construct possible answers to DNS queries.
  */
 
-#include "message.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "answer.h"
 #include "codes.h"
 
 // TODO: make this value dependent on the DEBUG definition
@@ -33,8 +35,13 @@ int32_t get_ttl(int8_t* name, int8_t name_size) {
 
 /**
  * Get the IP-address for a given name.
- * This is always one Unsigned 32-bit value.
+ * This is always one unsigned 32-bit value.
  */
-int32_t* get_ip(int8_t* name, int8_t name_size) {
-    return 12345;// TODO
+int8_t* get_ip(int8_t* name, int8_t name_size) {
+    int8_t* ip = calloc(sizeof(int8_t), 4);
+    ip[0] = 192;
+    ip[1] = 168;
+    ip[2] = 3;
+    ip[3] = 33;
+    return ip;// TODO
 }
