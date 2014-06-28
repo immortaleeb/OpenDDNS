@@ -9,6 +9,10 @@
 
 #include <stdint.h>
 
+// Properties of DNS as defined by RFC 1035
+#define PORT 53
+#define BUFFER_SIZE 512
+
 typedef struct dnsmsg_t {
 
     dnsmsg_header_t header;

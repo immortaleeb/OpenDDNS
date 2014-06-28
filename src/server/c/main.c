@@ -3,10 +3,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-
-// Properties of DNS as defined by RFC 1035
-#define PORT 53
-#define BUFFER_SIZE 512
+#include "dns/message.h"
 
 int main(int argc, const char* argv[]) {
     int listen_socket;
