@@ -1,5 +1,3 @@
-#include <stdint.h>
-
 /**
  * Message structure elements for DNS.
  * NS: name server
@@ -8,6 +6,8 @@
 
 #ifndef MESSAGE_H_
 #define MESSAGE_H_
+
+#include <stdint.h>
 
 typedef struct dnsmsg_t {
 
