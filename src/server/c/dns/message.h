@@ -13,16 +13,6 @@
 #define PORT 53
 #define BUFFER_SIZE 512
 
-typedef struct dnsmsg_t {
-
-    dnsmsg_header_t header;
-    dnsmsg_questions_t questions;
-    dnsmsg_answers_t answers;
-    dnsmsg_authorities_t authorities;
-    dnsmsg_additionals_t additionals;
-
-} dnsmsg_t;
-
 typedef struct dnsmsg_header_t {
 
     int16_t id;
@@ -57,13 +47,6 @@ typedef struct dnsmsg_rr_t {
 
 } dnsmsg_rr_t;
 
-// Questions to NS
-typedef struct dnsmsg_questions_t {
-
-    dnsmsg_question_t* questions;
-
-} dnsmsg_questions_t;
-
 typedef struct dnsmsg_question_t {
 
     int8_t name_size;
@@ -72,6 +55,13 @@ typedef struct dnsmsg_question_t {
     int16_t class;
 
 } dnsmsg_question_t;
+
+// Questions to NS
+typedef struct dnsmsg_questions_t {
+
+    dnsmsg_question_t* questions;
+
+} dnsmsg_questions_t;
 
 // RR's answering the question
 typedef struct dnsmsg_answers_t {
@@ -93,5 +83,15 @@ typedef struct dnsmsg_additionals_t {
     dnsmsg_rr_t* additionals;
 
 } dnsmsg_additionals_t;
+
+typedef struct dnsmsg_t {
+
+    dnsmsg_header_t header;
+    dnsmsg_questions_t questions;
+    dnsmsg_answers_t answers;
+    dnsmsg_authorities_t authorities;
+    dnsmsg_additionals_t additionals;
+
+} dnsmsg_t;
 
 #endif /* MESSAGE_H_ */
