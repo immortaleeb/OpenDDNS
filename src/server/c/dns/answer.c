@@ -4,26 +4,46 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "answer.h"
 #include "codes.h"
 
 // TODO: make this value dependent on the DEBUG definition
 #define HARD_TTL 10
 
-dnsmsg_rr_t* make_rr(dnsmsg_question_t* question) {
-    dnsmsg_rr_t* rr = calloc(sizeof(dnsmsg_rr_t), 1);
-    rr->name_size = question->name_size;
-    rr->name = question->name;
-    rr->type = question->type;
-    rr->class = question->class;
+/**
+ * Make a resource record reply to a query.
+ */
+dnsmsg_rr_t make_rr_reply(dnsmsg_question_t question) {
+    dnsmsg_rr_t rr;
+    rr.name_size = question.name_size;
+    rr.name = malloc(rr.name_size * sizeof(int8_t));
+    memcpy(rr.name, question.name, rr.name_size);
+    rr.type = question.type;
+    rr.class = question.class;
 
     // We only allow internet classes and A type requests for now.
-    if (RR_CLASS_IN == question->class && RR_TYPE_A == question->type) {
-        rr->ttl = get_ttl(question->name, question->name_size);
-        rr->data_size = RR_TYPE_A_SIZE; // Hard-coded A type size.
-        rr->data = get_ip(question->name, question->name_size);
+    if (RR_CLASS_IN == question.class && RR_TYPE_A == question.type) {
+        rr.ttl = get_ttl(question.name, question.name_size);
+        rr.data_size = RR_TYPE_A_SIZE; // Hard-coded A type size.
+        rr.data = get_ip(question.name, question.name_size);
     }
-    return 0;
+
+    return rr;
+}
+
+/**
+ * Make resource record replies for all the given queries.
+ */
+dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, int16_t amount) {
+    int i;
+
+    dnsmsg_rr_t* rr = malloc(sizeof(dnsmsg_rr_t) * amount);
+    for(i = 0; i < amount; i++) {
+        rr[i] = make_rr_reply(question[i]);
+    }
+
+    return rr;
 }
 
 /**

@@ -36,7 +36,8 @@
 #define RR_TYPE_ANY 255
 */
 
-#define RR_TYPE_A_SIZE 32
+// Sizes are in bytes
+#define RR_TYPE_A_SIZE 4
 
 // Unsigned 16 bit, CLASS in answers (resource records)
 #define RR_CLASS_IN 1

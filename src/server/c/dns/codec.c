@@ -5,51 +5,95 @@
 
 #include "codec.h"
 
-dnsmsg_t* interpret_question(char* buffer, ssize_t buffer_size) {
+/**
+ * Convert a buffer to a DNS message.
+ */
+dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size) {
     int i, j;
-    dnsmsg_t* message = calloc(sizeof(dnsmsg_t), 1);
+    dnsmsg_t message;
 
-    message->header.id = pop_int16(&buffer, &buffer_size);
-    message->header.status_flags = pop_int16(&buffer, &buffer_size);
-    message->header.query_count = pop_int16(&buffer, &buffer_size);
-    message->header.answer_count = pop_int16(&buffer, &buffer_size);
-    message->header.authority_count = pop_int16(&buffer, &buffer_size);
-    message->header.additional_count = pop_int16(&buffer, &buffer_size);
+    message.header.id = pop_int16(&buffer, &buffer_size);
+    message.header.status_flags = pop_int16(&buffer, &buffer_size);
+    message.header.query_count = pop_int16(&buffer, &buffer_size);
+    message.header.answer_count = pop_int16(&buffer, &buffer_size);
+    message.header.authority_count = pop_int16(&buffer, &buffer_size);
+    message.header.additional_count = pop_int16(&buffer, &buffer_size);
 
-    message->questions = calloc(sizeof(dnsmsg_question_t), message->header.query_count);
-    for(i = 0; i < message->header.query_count; i++) {
-        message->questions[i].name_size = pop_int8(&buffer, &buffer_size);
-        message->questions[i].name = calloc(sizeof(int8_t), message->questions[i].name_size);
-        for(j = 0; j < message->questions[i].name_size; j++) {
-            message->questions[i].name[j] = pop_int8(&buffer, &buffer_size);
+    message.questions = malloc(sizeof(dnsmsg_question_t) * message.header.query_count);
+    for(i = 0; i < message.header.query_count; i++) {
+        message.questions[i].name_size = pop_int8(&buffer, &buffer_size);
+        message.questions[i].name = calloc(sizeof(int8_t), message.questions[i].name_size);
+        for(j = 0; j < message.questions[i].name_size; j++) {
+            message.questions[i].name[j] = pop_int8(&buffer, &buffer_size);
         }
-        message->questions[i].type = pop_int16(&buffer, &buffer_size);
-        message->questions[i].class = pop_int16(&buffer, &buffer_size);
+        message.questions[i].type = pop_int16(&buffer, &buffer_size);
+        message.questions[i].class = pop_int16(&buffer, &buffer_size);
     }
 
-    // We ignore any further buffer contents, since we are only interested in the
-    // question part of the message.
+    message.answers = interpret_rr(message.header.answer_count, &buffer, &buffer_size);
+    message.authorities = interpret_rr(message.header.authority_count, &buffer, &buffer_size);
+    message.additionals = interpret_rr(message.header.additional_count, &buffer, &buffer_size);
 
     return message;
 }
 
 /**
+ * Read from a buffer to make a given amount of resource records.
+ * This will reduce the buffer_size by the amount of bytes read from the buffer.
+ * The buffer will also be reduced to the part without the read resource records.
+ */
+dnsmsg_rr_t* interpret_rr(int16_t amount, char** buffer, ssize_t* buffer_size) {
+    int i, j;
+    dnsmsg_rr_t* rr;
+
+    rr = malloc(sizeof(dnsmsg_rr_t) * amount);
+    for(i = 0; i < amount; i++) {
+        rr[i].name_size = pop_int8(buffer, buffer_size);
+        rr[i].name = malloc(sizeof(int8_t) * rr[i].name_size);
+        for(j = 0; j < rr[i].name_size; j++) {
+            rr[i].name[j] = pop_int8(buffer, buffer_size);
+        }
+        rr[i].type = pop_int16(buffer, buffer_size);
+        rr[i].class = pop_int16(buffer, buffer_size);
+        rr[i].ttl = pop_int32(buffer, buffer_size);
+        rr[i].data_size = pop_int16(buffer, buffer_size);
+        rr[i].data = malloc(sizeof(int8_t) * rr[i].data_size);
+        for(j = 0; j < rr[i].data_size; j++) {
+            rr[i].data[j] = pop_int8(buffer, buffer_size);
+        }
+    }
+
+    return rr;
+}
+
+/**
  * Take the first 8 bits from the start of the buffer.
- * The buffer_size will then also be reduced by 16 bits.
+ * The buffer_size will then also be reduced by 1 byte.
  */
 int8_t pop_int8(char** buffer, ssize_t* buffer_size) {
     int8_t value;
     value = *((*buffer)++);
-    *buffer_size -= 8;
+    *buffer_size -= 1;
+    if(*buffer_size < 0) {
+        fprintf(stderr, "\nPopping from buffer outside of buffer size, something has gone wrong!");
+    }
     return value;
 }
 
 /**
  * Take the first 16 bits from the start of the buffer.
- * The buffer_size will then also be reduced by 16 bits.
+ * The buffer_size will then also be reduced by 2 bytes.
  */
 int16_t pop_int16(char** buffer, ssize_t* buffer_size) {
     return pop_int8(buffer, buffer_size) << 8 | pop_int8(buffer, buffer_size);
+}
+
+/**
+ * Take the first 32 bits from the start of the buffer.
+ * The buffer_size will then also be reduced by 4 bytes.
+ */
+int32_t pop_int32(char** buffer, ssize_t* buffer_size) {
+    return pop_int16(buffer, buffer_size) << 16 | pop_int16(buffer, buffer_size);
 }
 
 /**
@@ -65,6 +109,7 @@ void serialize_message(dnsmsg_t message, char** buffer, ssize_t* buffer_size) {
     *buffer = malloc(*buffer_size);
 
     // Go through the message to place it inside the buffer.
+    index = 0;
     append_int16(buffer, &index, message.header.id);
     append_int16(buffer, &index, message.header.status_flags);
     append_int16(buffer, &index, message.header.query_count);
@@ -135,15 +180,15 @@ void append_int8(char** buffer, int* index, int8_t value) {
  */
 void append_int16(char** buffer, int* index, int16_t value) {
     append_int8(buffer, index, value >> 8);
-    append_int8(buffer, index, value & 15);
+    append_int8(buffer, index, value & 255);
 }
 
 /**
  * Append 32 bits to the buffer and increment the index by four.
  */
-void append_int32(char** buffer, int* index, int16_t value) {
+void append_int32(char** buffer, int* index, int32_t value) {
     append_int16(buffer, index, value >> 16);
-    append_int16(buffer, index, value & 255);
+    append_int16(buffer, index, value & 65535);
 }
 
 /**
