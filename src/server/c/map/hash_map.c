@@ -108,7 +108,7 @@ void* hash_map_get(hash_map* m, const void* key, int len) {
 
     if (m->entries[index] != NULL) {
         hash_map_entry* current = m->entries[index];
-        
+
         while (current != NULL) {
             if (m->cmp(current->key, key) == 0)
                 return current->value;
@@ -153,8 +153,8 @@ void init_hash_map(hash_map* m, unsigned int size) {
 hash_map_entry* create_entry(const void* key, const void* value, int len) {
     hash_map_entry* entry = (hash_map_entry*) malloc(sizeof(hash_map_entry));
 
-    entry->key = key;
-    entry->value = value;
+    entry->key = (void*) key;
+    entry->value = (void*) value;
     entry->len = len;
     entry->next = NULL;
 
