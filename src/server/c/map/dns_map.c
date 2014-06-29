@@ -177,4 +177,6 @@ char* dns_map_put_token(dns_map* map, const char* domain, char* token, int flag_
 void destroy_dns_map(dns_map* map) {
     destroy_hash_map(map->domain_to_token);
     destroy_hash_map(map->token_to_ip);
+
+    free(map);
 }

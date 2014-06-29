@@ -138,6 +138,7 @@ void destroy_hash_map(hash_map* m) {
     }
 
     free(m->entries);
+    free(m);
 }
 
 /**** Helper function implementations ****/
