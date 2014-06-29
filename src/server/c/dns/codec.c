@@ -7,8 +7,9 @@
 
 /**
  * Convert a buffer to a DNS message.
+ * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
-dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size) {
+dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size, int* error_flag) {
     int i, j;
     dnsmsg_t message;
 
@@ -33,6 +34,11 @@ dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size) {
     message.answers = interpret_rr(message.header.answer_count, &buffer, &buffer_size);
     message.authorities = interpret_rr(message.header.authority_count, &buffer, &buffer_size);
     message.additionals = interpret_rr(message.header.additional_count, &buffer, &buffer_size);
+
+    if(buffer_size < 0) {
+        fprintf(stderr, "Read invalid packet, ignoring.\n");
+        *error_flag = 1;
+    }
 
     return message;
 }
@@ -71,11 +77,10 @@ dnsmsg_rr_t* interpret_rr(int16_t amount, char** buffer, ssize_t* buffer_size) {
  * The buffer_size will then also be reduced by 1 byte.
  */
 int8_t pop_int8(char** buffer, ssize_t* buffer_size) {
-    int8_t value;
-    value = *((*buffer)++);
-    *buffer_size -= 1;
-    if(*buffer_size < 0) {
-        fprintf(stderr, "\nPopping from buffer outside of buffer size, something has gone wrong!");
+    int8_t value = 0;
+    (*buffer_size)--;
+    if(*buffer_size >= 0) {
+        value = *((*buffer)++);
     }
     return value;
 }
@@ -223,9 +228,9 @@ void append_resource_records(char** buffer, int* index, dnsmsg_rr_t* resource_re
  * RA: 1 bit: (only valid in responses) if this server can accept recursive requests.
  * RCODE: 4 bits: see errorcodes in codes.h
  */
-int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int rcode) {
+int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int ra, int rcode) {
     int z = 0; // Must always be zero
-    return qr << 15 | opcode << 11 | aa << 10 | tc << 9 | rd << 8 | z << 4 | rcode;
+    return qr << 15 | opcode << 11 | aa << 10 | tc << 9 | rd << 8 | ra << 5 | z << 4 | rcode;
 }
 
 /**
@@ -239,12 +244,20 @@ int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int rcod
  * RA: 1 bit: (only valid in responses) if this server can accept recursive requests.
  * RCODE: 4 bits: see errorcodes in codes.h
  */
-void decode_status_flags(int16_t status_flags , int* qr, int* opcode, int* aa, int* tc, int* rd, int* rcode) {
+void decode_status_flags(int16_t status_flags , int* qr, int* opcode, int* aa, int* tc, int* rd, int* ra, int* rcode) {
     *qr = (status_flags >> 15) & 1;
-    *opcode = (status_flags >> 11) & 7;
+    *opcode = (status_flags >> 11) & 15;
     *aa = (status_flags >> 10) & 1;
     *tc = (status_flags >> 9) & 1;
     *rd = (status_flags >> 8) & 1;
-    // status_flags >> 4 & 4; Would be the Z.
-    *rcode = status_flags & 4;
+    *ra = (status_flags >> 7) & 1;
+    // status_flags >> 4 & 7; Would be the Z.
+    *rcode = status_flags & 15;
+}
+
+/**
+ * Check if this message is a trunctated one.
+ */
+int is_truncated(dnsmsg_t message) {
+    return (message.header.status_flags >> 9) & 1;
 }

@@ -10,7 +10,9 @@ void free_message(dnsmsg_t message) {
         free(message.questions[i].name);
 
     }
-    free(message.questions);
+    if(message.header.query_count) {
+        free(message.questions);
+    }
 
     free_rr(message.answers, message.header.answer_count);
     free_rr(message.authorities, message.header.authority_count);
@@ -27,5 +29,7 @@ void free_rr(dnsmsg_rr_t* rr, int16_t amount) {
         free(rr[i].name);
         free(rr[i].data);
     }
-    free(rr);
+    if(amount) {
+        free(rr);
+    }
 }

@@ -1,19 +1,5 @@
 #include "dns_thread.h"
 
-#include <stdlib.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <stdio.h>
-#include "../dns/message.h"
-#include "thread_args.h"
-
-int initialize_listener(int* listen_socket);
-void handle_datagram(char* buffer, ssize_t buffer_size);
-int start_listener(int* listen_socket);
-
 static int (*has_finished)(void);
 static void (*set_finished)(void);
 
@@ -35,6 +21,8 @@ void* dns_thread_main(void* args) {
         exit(1);
     }
 
+    //close(listen_socket);
+
     return NULL;
 }
 
@@ -43,7 +31,7 @@ int initialize_listener(int* listen_socket) {
     int sockoptval = 1;
 
     // Create a listen socket over IP for UDP.
-    if ((*listen_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((*listen_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         perror("cannot create socket");
         return 0;
     }
@@ -66,15 +54,66 @@ int initialize_listener(int* listen_socket) {
     return 1;
 }
 
-void handle_datagram(char* buffer, ssize_t buffer_size) {
-    printf("\nHey, you there! I received a packet!\n");
+int send_buffer(char* buffer, ssize_t buffer_size, struct sockaddr* to, socklen_t to_size) {
+    struct sockaddr_in send_addr;
+    int send_socket;
+    int sockoptval = 1;
+
+    // Create a listen socket over IP for UDP.
+    if ((send_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+        perror("cannot create socket");
+        return 0;
+    }
+
+    // Allow immediate reuse of the port.
+    setsockopt(send_socket, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(int));
+
+    // Define socket listening location.
+    memset((char*) &send_addr, 0, sizeof(send_addr));
+    send_addr.sin_family = AF_INET; // IPv4
+    send_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Host address
+    send_addr.sin_port = htons(PORT); // Port to listen to
+
+    /*#define SRV_IP "999.999.999.999"
+    if (!inet_aton(SRV_IP, &send_addr.sin_addr)) { // <- host to IP
+        perror("inet_aton() failed");
+        return 0;
+    }*/
+
+    // Bind the listen socket to a port on an interface.
+    if (sendto(send_socket, buffer, buffer_size, 0, to, to_size) < 0) {
+        perror("send failed");
+        return 0;
+    }
+
+    close(send_socket);
+
+    return 1;
+}
+
+void handle_datagram(char* buffer_in, ssize_t buffer_size_in, char** buffer_out,
+        ssize_t* buffer_size_out) {
+    dnsmsg_t question, reply;
+    int error_flag = 0;
+    printf("Hey, you there! I received a packet!\n");
+    question = interpret_question(buffer_in, buffer_size_in, &error_flag);
+    if(!error_flag) {
+        reply = make_reply(question);
+
+        serialize_message(reply, buffer_out, buffer_size_out);
+
+        free_message(question);
+        free_message(reply);
+    }
 }
 
 int start_listener(int* listen_socket) {
-    char buffer[BUFFER_SIZE + 1];
+    char buffer_in[BUFFER_SIZE];
+    char* buffer_out;
+    ssize_t buffer_size_in, buffer_size_out;
     struct sockaddr_storage client_addr;
-    socklen_t client_addr_length = sizeof(client_addr);
-    ssize_t received_size;
+    socklen_t client_addr_length;
+    client_addr_length = sizeof(client_addr);
 
     while (!has_finished()) {
 
@@ -84,7 +123,7 @@ int start_listener(int* listen_socket) {
          * also saved.
          * Fourth argument is zero, we don't need any special behavior for this function.
          */
-        while ((received_size = recvfrom(*listen_socket, buffer, sizeof(buffer), 0,
+        while ((buffer_size_in = recvfrom(*listen_socket, buffer_in, sizeof(buffer_in), 0,
             (struct sockaddr*) &client_addr, &client_addr_length)) < 0) {
             if ((errno != ECHILD) && (errno != EINTR)) {
                 perror("accept failed");
@@ -92,12 +131,15 @@ int start_listener(int* listen_socket) {
             }
         }
 
-        if (received_size == BUFFER_SIZE + 1) {
-            // If the client sent a valid DNS request, this is impossible to happen.
-            warn("datagram too large for buffer: truncated");
-        } else {
-            handle_datagram(buffer, received_size);
+        // Read the buffer and convert it to a reply buffer, then send it if
+        // the buffer_size_out is larger than 0. Would be 0 if an error occured.
+        buffer_size_out = 0;
+        handle_datagram(buffer_in, buffer_size_in, &buffer_out, &buffer_size_out);
+        if(buffer_size_out > 0) {
+            send_buffer(buffer_out, buffer_size_out, (struct sockaddr*) &client_addr, client_addr_length);
         }
+
+        printf("Finished handling a datagram, listening for new ones.\n");
     }
 
     return 1;

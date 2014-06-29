@@ -16,12 +16,12 @@
  * Make a dummy message with some valid content, queries and answers can be mixed.
  */
 dnsmsg_t make_message() {
-    int i;
+    int i, error_flag;
     dnsmsg_t message;
     char* name = "testname";
 
     message.header.id = 257;
-    message.header.status_flags = encode_status_flags(0, OPCODE_QUERY, 0, 0, 0, RCODE_NOERROR);
+    message.header.status_flags = encode_status_flags(0, OPCODE_QUERY, 0, 0, 0, 0, RCODE_NOERROR);
     message.header.query_count = 2;
     message.header.answer_count = 2;
     message.header.authority_count = 2;
@@ -36,9 +36,9 @@ dnsmsg_t make_message() {
         message.questions[i].class = RR_CLASS_IN;
     }
 
-    message.answers = make_rr_reply_all(message.questions, message.header.query_count);
-    message.authorities = make_rr_reply_all(message.questions, message.header.query_count);
-    message.additionals = make_rr_reply_all(message.questions, message.header.query_count);
+    message.answers = make_rr_reply_all(message.questions, message.header.query_count, &error_flag);
+    message.authorities = make_rr_reply_all(message.questions, message.header.query_count, &error_flag);
+    message.additionals = make_rr_reply_all(message.questions, message.header.query_count, &error_flag);
 
     return message;
 }

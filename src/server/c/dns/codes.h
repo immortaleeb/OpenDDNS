@@ -33,8 +33,8 @@
 #define RR_TYPE_MX 15
 #define RR_TYPE_SRV 33
 #define RR_TYPE_A6 38
-#define RR_TYPE_ANY 255
 */
+#define RR_TYPE_ANY 255
 
 // Sizes are in bytes
 #define RR_TYPE_A_SIZE 4

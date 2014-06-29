@@ -22,3 +22,8 @@
 *.i*86
 *.x86_64
 *.hex
+
+# Editor files
+.project
+.cproject
+Debug/*

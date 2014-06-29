@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "message.h"
 
-dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size);
+dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size, int* error_flag);
 dnsmsg_rr_t* interpret_rr(int16_t amount, char** buffer, ssize_t* buffer_size);
 int8_t pop_int8(char** buffer, ssize_t* buffer_size);
 int16_t pop_int16(char** buffer, ssize_t* buffer_size);
@@ -20,7 +20,8 @@ void append_int32(char** buffer, int* index, int32_t value);
 void append_resource_records(char** buffer, int* index, dnsmsg_rr_t* resource_records,
         int16_t amount);
 
-int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int rcode);
-void decode_status_flags(int16_t status_flags , int* qr, int* opcode, int* aa, int* tc, int* rd, int* rcode);
+int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int ra, int rcode);
+void decode_status_flags(int16_t status_flags , int* qr, int* opcode, int* aa, int* tc, int* rd, int* ra, int* rcode);
+int is_truncated(dnsmsg_t message);
 
 #endif /* CODEC_H_ */
