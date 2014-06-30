@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "../../../common/c/common.h"
 #include "../map/dns_map.h"
@@ -86,7 +87,7 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
     int nbytes;
     bind_req_packet req;
     bind_resp_packet resp;
-    char received_token[TOKEN_SIZE+1];
+    char* received_token;
 
     printf("Accepted connection from ");
     print_ipv4(stdout, (uint8_t*) &(client_addr->sin_addr.s_addr));
@@ -99,6 +100,9 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
         shutdown(client_socket, SHUT_RDWR);
         return;
     }
+
+    // Allocate size for the received token
+    received_token = (char*) malloc(sizeof(char) * (TOKEN_SIZE + 1));
 
     // Add '\0' to the end of the token - this is necessary
     // for comparing inside dns_map
@@ -116,6 +120,9 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
         if (nbytes != sizeof(resp)) {
             fprintf(stderr, "Error while sending response, terminating connection\n");
         }
+
+        // Free allocated token
+        free(received_token);
 
         shutdown(client_socket, SHUT_RDWR);
         return;
