@@ -43,10 +43,17 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
     message.header.additional_count = 0;
     message.answers = make_rr_reply_all(question_message.questions,
             question_message.header.query_count, &search_ip_error_flag, map);
-    if(search_ip_error_flag && !return_error) {
-        fprintf(stderr, "\nQuestion %i triggered a name error.",
-                question_message.header.id);
-        return_error = RCODE_NAMEERROR;
+    if(!return_error) {
+        message.header.answer_count = 0;
+        if(search_ip_error_flag == 1) {
+            fprintf(stderr, "\nQuestion %i triggered a name error.",
+                    question_message.header.id);
+            return_error = RCODE_NAMEERROR;
+        } else if(search_ip_error_flag == 2) {
+            fprintf(stderr, "\nQuestion %i asked for a non-A type.",
+                    question_message.header.id);
+            return_error = RCODE_NOTIMPLEMENTED;
+        }
     }
     message.header.status_flags = encode_status_flags(1, OPCODE_QUERY, 1, send_tc, rd, 0, return_error);
 
@@ -77,6 +84,11 @@ dnsmsg_rr_t make_rr_reply(dnsmsg_question_t question, int* error_flag, dns_map* 
         rr.ttl = get_ttl(question.labels, question.labels_size);
         rr.data_size = RR_TYPE_A_SIZE; // Hard-coded A type size.
         rr.data = get_ip(question.labels, question.labels_size, error_flag, map);
+    } else {
+        rr.ttl = 0;
+        rr.data_size = 0;
+        rr.data = 0;
+        *error_flag = 2;
     }
 
     return rr;

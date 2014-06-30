@@ -106,7 +106,7 @@ int start_listener(int* listen_socket, dns_map* map) {
             free(buffer_out);
         }
 
-        printf("Finished handling a datagram, listening for new ones.\n");
+        printf("\nFinished handling a datagram, listening for new ones.\n");
     }
 
     return 1;
