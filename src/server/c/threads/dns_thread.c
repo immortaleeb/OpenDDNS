@@ -17,7 +17,7 @@ void* dns_thread_main(void* args) {
     }
 
     printf("\nStarted listener.\n\n");
-    if(!start_listener(&listen_socket)) {
+    if(!start_listener(&listen_socket, arguments->map)) {
         exit(1);
     }
 
@@ -53,13 +53,13 @@ int initialize_listener(int* listen_socket) {
 }
 
 void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned char** buffer_out,
-        ssize_t* buffer_size_out) {
+        ssize_t* buffer_size_out, dns_map* map) {
     dnsmsg_t question, reply;
     int error_flag = 0;
     printf("Hey, you there! I received a packet!\n");
     question = interpret_question(buffer_in, buffer_size_in, &error_flag);
     if(!error_flag) {
-        reply = make_reply(question);
+        reply = make_reply(question, map);
 
         serialize_message(reply, buffer_out, buffer_size_out);
 
@@ -68,7 +68,7 @@ void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned 
     }
 }
 
-int start_listener(int* listen_socket) {
+int start_listener(int* listen_socket, dns_map* map) {
     unsigned char buffer_in[BUFFER_SIZE];
     unsigned char* buffer_out;
     ssize_t buffer_size_in, buffer_size_out;
@@ -96,7 +96,7 @@ int start_listener(int* listen_socket) {
         // the buffer_size_out is larger than 0. Would be 0 if an error occured.
         // This is sent over the existing socket.
         buffer_size_out = 0;
-        handle_datagram(buffer_in, buffer_size_in, &buffer_out, &buffer_size_out);
+        handle_datagram(buffer_in, buffer_size_in, &buffer_out, &buffer_size_out, map);
         if(buffer_size_out > 0) {
             if (sendto(*listen_socket, buffer_out, buffer_size_out, 0,
                     (struct sockaddr*) &client_addr, client_addr_length) < 0) {

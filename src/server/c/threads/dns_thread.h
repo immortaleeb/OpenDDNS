@@ -17,7 +17,7 @@ void* dns_thread_main(void* args);
 
 int initialize_listener(int* listen_socket);
 void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned char** buffer_out,
-        ssize_t* buffer_size_out);
-int start_listener(int* listen_socket);
+        ssize_t* buffer_size_out, dns_map* map);
+int start_listener(int* listen_socket, dns_map* map);
 
 #endif
