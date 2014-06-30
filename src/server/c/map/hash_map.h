@@ -15,6 +15,12 @@ typedef struct {
     int (*cmp)(const void*, const void*);   // function to compare keys
 } hash_map;
 
+typedef struct {
+    int index;
+    hash_map_entry* entry;
+    hash_map* map;
+} hash_map_iterator;
+
 /**
  * Creates a new hash_map
  */
@@ -33,6 +39,14 @@ void* hash_map_put(hash_map* m, const void* key, int len, void* value);
  * array and is necessary for hash value calculations
  */
 void* hash_map_get(hash_map* m, const void* key, int len);
+
+/**
+ * Returns an iterator over the entries in the 
+ * given hash_map.
+ * If this function returns NULL, this means we
+ * have reached the end of the hash_map entries.
+ */
+hash_map_iterator* hash_map_get_iterator(hash_map* map, hash_map_iterator* it);
 
 /**
  * Destroys the hash_map, by freeing allocated memory.

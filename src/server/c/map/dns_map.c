@@ -185,6 +185,14 @@ int dns_map_has_token(dns_map* map, const char* token) {
     return hash_map_get(map->tokens, (void*) token, strlen(token)) != NULL;
 }
 
+domain_token_iterator* dns_map_get_domain_token_iterator(dns_map* map, domain_token_iterator* it) {
+    return hash_map_get_iterator(map->domain_to_token, it);
+}
+
+token_ip_iterator* dns_map_get_token_ip_iterator(dns_map* map, token_ip_iterator* it) {
+    return hash_map_get_iterator(map->token_to_ip, it);
+}
+
 void destroy_dns_map(dns_map* map, int free_domains, int free_tokens, int free_ips) {
     destroy_hash_map(map->domain_to_token, free_domains, free_tokens);
     destroy_hash_map(map->token_to_ip, 0, free_ips);

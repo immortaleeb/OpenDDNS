@@ -9,15 +9,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#define NUM_CONSOLE_COMMANDS 2
+#define NUM_CONSOLE_COMMANDS 3
 #define CONSOLE_BUFFER_SIZE 255
 
 static int (*has_finished)(void);
 static void (*set_finished)(void);
 static dns_map* map;
 
-void register_func(int argc, char** argv);
 void stop_func(int argc, char** argv);
+void register_func(int argc, char** argv);
+void list_func(int argc, char** argv);
 
 void* console_thread_main(void* args) {
     // Get the necessary arguments
@@ -32,6 +33,7 @@ void* console_thread_main(void* args) {
     // Register commands
     register_command("stop", stop_func);
     register_command("register", register_func);
+    register_command("list", list_func);
 
     // Run the console
     console_run("> ", CONSOLE_BUFFER_SIZE, has_finished);
@@ -69,6 +71,32 @@ void register_func(int argc, char** argv) {
         dns_map_put_token(map, domain, token, 1);
         printf("Succesfully linked domain '%s' to token '%s'\n",
                 domain, token);
+    }
+}
+
+void list_func(int argc, char** argv) {
+    // Domain -> Token
+    {
+        printf("DOMAIN    TOKEN\n");
+        domain_token_iterator* it = dns_map_get_domain_token_iterator(map, NULL);    
+        while (it != NULL) {
+            printf("%s    %s\n", it->entry->key, it->entry->value);
+            it = dns_map_get_domain_token_iterator(map, it);    
+        }
+    }
+    
+    // Token -> IP
+    {
+        printf("\nTOKEN    IP\n");
+        token_ip_iterator* it = dns_map_get_token_ip_iterator(map, NULL);
+        while (it != NULL) {
+            printf("%s    ", it->entry->key); 
+            print_ipv4(stdout, it->entry->value); 
+            printf("\n");
+
+            it = dns_map_get_token_ip_iterator(map, it);
+        }
+        printf("\n");
     }
 }
 

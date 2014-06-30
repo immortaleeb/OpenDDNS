@@ -1,6 +1,9 @@
 #ifndef _OPENDDNS_COMMON_H_
 #define _OPENDDNS_COMMON_H_
 
+#include <stdio.h>
+#include <stdint.h>
+
 // Token size (in bytes)
 #define TOKEN_SIZE 4
 
@@ -21,6 +24,12 @@ typedef struct {
 typedef struct {
    unsigned char response_code; 
 } bind_resp_packet;
+
+/**
+ * Prints an ipv4 address to the given FILE*
+ * (without newline)
+ */
+void print_ipv4(FILE* file, uint8_t* ip);
 
 // Response codes
 #define RESP_OK 0

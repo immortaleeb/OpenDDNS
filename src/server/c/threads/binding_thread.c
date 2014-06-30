@@ -82,15 +82,6 @@ void* binding_thread_main(void* args) {
     return NULL;
 }
 
-void print_ip(uint8_t* ip) {
-    int i;
-    printf("%d", ip[0]);
-    for (i = 1; i < 4; ++i) {
-        printf(".%d", ip[i]);
-    }
-    printf("\n");
-}
-
 void process_client_connection(int client_socket, struct sockaddr_in* client_addr, dns_map* map) {
     int nbytes;
     bind_req_packet req;
@@ -98,7 +89,8 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
     char received_token[TOKEN_SIZE+1];
 
     printf("Accepted connection from ");
-    print_ip((uint8_t*) &(client_addr->sin_addr.s_addr));
+    print_ipv4(stdout, (uint8_t*) &(client_addr->sin_addr.s_addr));
+    printf("\n");
 
     // Receive the token from the client
     nbytes = recv(client_socket, (void*) &req, sizeof(req), 0);

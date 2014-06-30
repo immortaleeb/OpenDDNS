@@ -120,6 +120,39 @@ void* hash_map_get(hash_map* m, const void* key, int len) {
     return NULL;
 }
 
+hash_map_iterator* hash_map_get_iterator(hash_map* map, hash_map_iterator* it) {
+    int i;
+
+    if (it != NULL) {
+        if (it->entry->next != NULL) {
+            it->entry = it->entry->next;
+            return it;
+        }
+    }
+
+    if (it == NULL) {
+        it = (hash_map_iterator*) malloc(sizeof(hash_map_iterator));
+        it->map = map;
+        it->index = -1;
+    }        
+
+    // Find first valid entry
+    i = it->index+1;
+    while (i < map->size) {
+        if (map->entries[i] != NULL) {
+            it->entry = map->entries[i];
+            it->index = i;
+
+            return it;
+        }
+        i++;
+    }
+
+    // At the end of the entries
+    free(it);
+    return NULL;
+}
+
 void destroy_hash_map(hash_map* m, int free_keys, int free_vals) {
     int i;
 
