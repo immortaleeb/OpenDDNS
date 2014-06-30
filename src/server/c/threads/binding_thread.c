@@ -95,6 +95,7 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
     int nbytes;
     bind_req_packet req;
     bind_resp_packet resp;
+    char received_token[TOKEN_SIZE+1];
 
     printf("Accepted connection from ");
     print_ip((uint8_t*) &(client_addr->sin_addr.s_addr));
@@ -107,8 +108,13 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
         return;
     }
 
+    // Add '\0' to the end of the token - this is necessary
+    // for comparing inside dns_map
+    memcpy(received_token, req.token, TOKEN_SIZE);
+    received_token[TOKEN_SIZE] = '\0';
+
     // Check if the token is a valid
-    if (!dns_map_has_token(map, req.token)) {
+    if (!dns_map_has_token(map, received_token)) {
         // Invalid token, send an invalid response
         fprintf(stderr, "Client supplied an invalid token, sending response\n");
 
