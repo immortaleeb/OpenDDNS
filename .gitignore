@@ -27,3 +27,10 @@
 .project
 .cproject
 Debug/*
+
+# Mac files
+.DS_Store
+
+# Build directories
+build/
+bin/
