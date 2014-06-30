@@ -1,6 +1,6 @@
 CC := gcc
 CFLAGS :=
-LDFLAGS :=
+LDFLAGS := -lpthread
 
 export CC CFLAGS LDFLAGS
 
