@@ -35,10 +35,17 @@ typedef struct dnsmsg_header {
 
 } dnsmsg_header_t;
 
-typedef struct dnsmsg_question {
+typedef struct dnsmsg_label {
 
     uint8_t name_size;
-    uint8_t* name; // NO PADDING IS REQUIRED!
+    uint8_t* name;
+
+} dnsmsg_label_t;
+
+typedef struct dnsmsg_question {
+
+    uint16_t labels_size;
+    dnsmsg_label_t* labels;
     uint16_t type;
     uint16_t class;
 
@@ -47,8 +54,8 @@ typedef struct dnsmsg_question {
 // Resource record
 typedef struct dnsmsg_rr {
 
-    uint8_t name_size;
-    uint8_t* name; // NO PADDING IS REQUIRED!
+    uint16_t labels_size;
+    dnsmsg_label_t* labels;
     uint16_t type;
     uint16_t class;
     uint32_t ttl;
@@ -67,6 +74,7 @@ typedef struct dnsmsg {
 
 } dnsmsg_t;
 
+void free_labels(dnsmsg_label_t* labels, uint16_t labels_size);
 void free_message(dnsmsg_t message);
 void free_rr(dnsmsg_rr_t* rr, uint16_t amount);
 

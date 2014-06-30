@@ -1,13 +1,25 @@
 #include "message.h"
 
 /**
+ * Free the given labels, including the allocated space for the labels itself.
+ */
+void free_labels(dnsmsg_label_t* labels, uint16_t labels_size) {
+    unsigned int i;
+
+    for(i = 0; i < labels_size; i++) {
+        free(labels[i].name);
+    }
+    free(labels);
+}
+
+/**
  * Free everything inside a given message.
  */
 void free_message(dnsmsg_t message) {
-    int i, j;
+    unsigned int i, j;
 
     for(i = 0; i < message.header.query_count; i++) {
-        free(message.questions[i].name);
+        free_labels(message.questions[i].labels, message.questions[i].labels_size);
 
     }
     if(message.header.query_count) {
@@ -23,10 +35,10 @@ void free_message(dnsmsg_t message) {
  * Free everything inside a given resource record, including the allocated space for the rr itself.
  */
 void free_rr(dnsmsg_rr_t* rr, uint16_t amount) {
-    int i,j;
+    unsigned int i,j;
 
     for(i = 0; i < amount; i++) {
-        free(rr[i].name);
+        free_labels(rr[i].labels, rr[i].labels_size);
         free(rr[i].data);
     }
     if(amount) {

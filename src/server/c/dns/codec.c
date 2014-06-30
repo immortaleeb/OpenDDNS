@@ -6,6 +6,37 @@
 #include "codec.h"
 
 /**
+ * Read all next labels from the buffer until a null byte is encountered (the null will also be
+ * taken out of the buffer).
+ * This can be used for labels in questions and resource records.
+ * The amount of labels read will be stored in 'labels_size'.
+ */
+dnsmsg_label_t* interpret_labels(unsigned char** buffer, ssize_t* buffer_size, uint16_t* labels_size) {
+    uint8_t next_size;
+    dnsmsg_label_t* labels;
+    unsigned int amount, i;
+    amount = 0;
+
+    while ((next_size = pop_int8(buffer, buffer_size)) > 0) {
+        if(!amount) {
+            labels = malloc(sizeof(dnsmsg_label_t));
+        } else {
+            labels = realloc(labels, sizeof(dnsmsg_label_t) * (amount + 1));
+        }
+        labels[amount].name_size = next_size;
+        labels[amount].name = calloc(sizeof(uint8_t), labels[amount].name_size);
+        for(i = 0; i < labels[amount].name_size; i++) {
+            labels[amount].name[i] = pop_int8(buffer, buffer_size);
+        }
+        amount++;
+    }
+
+    *labels_size = amount;
+
+    return labels;
+}
+
+/**
  * Convert a buffer to a DNS message.
  * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
@@ -22,11 +53,8 @@ dnsmsg_t interpret_question(unsigned char* buffer, ssize_t buffer_size, int* err
 
     message.questions = malloc(sizeof(dnsmsg_question_t) * message.header.query_count);
     for(i = 0; i < message.header.query_count; i++) {
-        message.questions[i].name_size = pop_int8(&buffer, &buffer_size);
-        message.questions[i].name = calloc(sizeof(uint8_t), message.questions[i].name_size + 1);
-        for(j = 0; j < message.questions[i].name_size + 1; j++) {
-            message.questions[i].name[j] = pop_int8(&buffer, &buffer_size);
-        }
+        message.questions[i].labels = interpret_labels(&buffer, &buffer_size,
+                &message.questions[i].labels_size);
         message.questions[i].type = pop_int16(&buffer, &buffer_size);
         message.questions[i].class = pop_int16(&buffer, &buffer_size);
     }
@@ -54,11 +82,7 @@ dnsmsg_rr_t* interpret_rr(uint16_t amount, unsigned char** buffer, ssize_t* buff
 
     rr = malloc(sizeof(dnsmsg_rr_t) * amount);
     for(i = 0; i < amount; i++) {
-        rr[i].name_size = pop_int8(buffer, buffer_size);
-        rr[i].name = malloc(sizeof(uint8_t) * rr[i].name_size + 1);
-        for(j = 0; j < rr[i].name_size + 1; j++) {
-            rr[i].name[j] = pop_int8(buffer, buffer_size);
-        }
+        rr[i].labels = interpret_labels(buffer, buffer_size, &rr[i].labels_size);
         rr[i].type = pop_int16(buffer, buffer_size);
         rr[i].class = pop_int16(buffer, buffer_size);
         rr[i].ttl = pop_int32(buffer, buffer_size);
@@ -123,10 +147,7 @@ void serialize_message(dnsmsg_t message, unsigned char** buffer, ssize_t* buffer
     append_int16(buffer, &index, message.header.additional_count);
 
     for(i = 0; i < message.header.query_count; i++) {
-        append_int8(buffer, &index, message.questions[i].name_size);
-        for(j = 0; j < message.questions[i].name_size + 1; j++) {
-            append_int8(buffer, &index, message.questions[i].name[j]);
-        }
+        append_labels(buffer, &index, message.questions[i].labels, message.questions[i].labels_size);
         append_int16(buffer, &index, message.questions[i].type);
         append_int16(buffer, &index, message.questions[i].class);
     }
@@ -134,6 +155,21 @@ void serialize_message(dnsmsg_t message, unsigned char** buffer, ssize_t* buffer
     append_resource_records(buffer, &index, message.answers, message.header.answer_count);
     append_resource_records(buffer, &index, message.authorities, message.header.authority_count);
     append_resource_records(buffer, &index, message.additionals, message.header.additional_count);
+}
+
+/**
+ * Calculate the size required to store the given labels.
+ */
+size_t calc_labels_size(dnsmsg_label_t* labels, uint16_t labels_size) {
+    unsigned int i;
+    size_t size = 1; // For the mandatory last null byte.
+
+    for(i = 0; i < labels_size; i++) {
+        size += sizeof(labels[i].name_size);
+        size += labels[i].name_size * sizeof(uint8_t);
+    }
+
+    return size;
 }
 
 /**
@@ -147,8 +183,7 @@ size_t calc_message_size(dnsmsg_t message) {
 
     // Referenced parts of question
     for(i = 0; i < message.header.query_count; i++) {
-        size += sizeof(message.questions[i].name_size);
-        size += (message.questions[i].name_size + 1) * sizeof(uint8_t);
+        size += calc_labels_size(message.questions[i].labels, message.questions[i].labels_size);
         size += sizeof(message.questions[i].type);
         size += sizeof(message.questions[i].class);
     }
@@ -168,8 +203,7 @@ size_t calc_resource_records_size(dnsmsg_rr_t* resource_records, uint16_t amount
     size_t size = 0;
 
     for(i = 0; i < amount; i++) {
-        size += sizeof(resource_records[i].name_size);
-        size += (resource_records[i].name_size + 1) * sizeof(uint8_t);
+        size += calc_labels_size(resource_records[i].labels, resource_records[i].labels_size);
         size += sizeof(resource_records[i].type);
         size += sizeof(resource_records[i].class);
         size += sizeof(resource_records[i].ttl);
@@ -204,16 +238,31 @@ void append_int32(unsigned char** buffer, unsigned int* index, uint32_t value) {
 }
 
 /**
+ * Append labels to the buffer.
+ */
+void append_labels(unsigned char** buffer, unsigned int* index, dnsmsg_label_t* labels,
+        uint16_t labels_size) {
+    unsigned int i, j;
+
+    for(i = 0; i < labels_size; i++) {
+        append_int8(buffer, index, labels[i].name_size);
+        for(j = 0; j < labels[i].name_size; j++) {
+            append_int8(buffer, index, labels[i].name[j]);
+        }
+    }
+
+    // Always end with a null byte
+    append_int8(buffer, index, 0);
+}
+
+/**
  * Add a full list of resource records to the buffer and increment the index accordingly.
  */
 void append_resource_records(unsigned char** buffer, unsigned int* index, dnsmsg_rr_t* resource_records,
         uint16_t amount) {
     unsigned int i, j;
     for(i = 0; i < amount; i++) {
-        append_int8(buffer, index, resource_records[i].name_size);
-        for(j = 0; j < resource_records[i].name_size + 1; j++) {
-            append_int8(buffer, index, resource_records[i].name[j]);
-        }
+        append_labels(buffer, index, resource_records[i].labels, resource_records[i].labels_size);
         append_int16(buffer, index, resource_records[i].type);
         append_int16(buffer, index, resource_records[i].class);
         append_int32(buffer, index, resource_records[i].ttl);

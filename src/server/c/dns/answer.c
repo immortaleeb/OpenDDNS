@@ -58,19 +58,25 @@ dnsmsg_t make_reply(dnsmsg_t question_message) {
  * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
 dnsmsg_rr_t make_rr_reply(dnsmsg_question_t question, int* error_flag) {
+    unsigned int i;
     dnsmsg_rr_t rr;
-    rr.name_size = question.name_size;
-    rr.name = malloc((rr.name_size + 1) * sizeof(uint8_t));
-    memcpy(rr.name, question.name, rr.name_size + 1);
+
+    rr.labels_size = question.labels_size;
+    rr.labels = malloc(rr.labels_size * sizeof(dnsmsg_label_t));
+    for(i = 0; i < rr.labels_size; i++) {
+        rr.labels[i].name_size = question.labels[i].name_size;
+        rr.labels[i].name = malloc(rr.labels[i].name_size * sizeof(uint8_t));
+        memcpy(rr.labels[i].name, question.labels[i].name, rr.labels[i].name_size);
+    }
     rr.type = question.type;
     rr.class = question.class;
 
     // We only allow internet classes and A type requests for now.
     if (RR_CLASS_IN == question.class && (RR_TYPE_A == question.type
             || RR_TYPE_ANY == question.type)) {
-        rr.ttl = get_ttl(question.name, question.name_size);
+        rr.ttl = get_ttl(question.labels, question.labels_size);
         rr.data_size = RR_TYPE_A_SIZE; // Hard-coded A type size.
-        rr.data = get_ip(question.name, question.name_size, error_flag);
+        rr.data = get_ip(question.labels, question.labels_size, error_flag);
     }
 
     return rr;
@@ -94,7 +100,7 @@ dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, uint16_t amount, int
 /**
  * Get the TTL for a given name.
  */
-uint32_t get_ttl(uint8_t* name, uint8_t name_size) {
+uint32_t get_ttl(dnsmsg_label_t* labels, uint16_t labels_size) {
     return HARD_TTL;
 }
 
@@ -103,7 +109,7 @@ uint32_t get_ttl(uint8_t* name, uint8_t name_size) {
  * This is always one unsigned 32-bit value.
  * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
-uint8_t* get_ip(uint8_t* name, uint8_t name_size, int* error_flag) {
+uint8_t* get_ip(dnsmsg_label_t* labels, uint16_t labels_size, int* error_flag) {
     uint8_t* ip = calloc(sizeof(uint8_t), 4);
     ip[0] = 192;
     ip[1] = 168;
