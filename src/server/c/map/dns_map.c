@@ -34,17 +34,17 @@ int write_string(FILE* handle, const char* str) {
     return 1;
 }
 
-int read_ipv4(FILE* handle, int8_t** ip) {
+int read_ipv4(FILE* handle, uint8_t** ip) {
 
-    *ip = (int8_t*) malloc(sizeof(int8_t) * 4);
-    if (fread(*ip, sizeof(int8_t), 4, handle) != 4) return 0;
+    *ip = (uint8_t*) malloc(sizeof(uint8_t) * 4);
+    if (fread(*ip, sizeof(uint8_t), 4, handle) != 4) return 0;
 
     return 1;
 }
 
-int write_ipv4(FILE* handle, int8_t* ip) {
+int write_ipv4(FILE* handle, uint8_t* ip) {
 
-    if (fwrite(ip, sizeof(int8_t), 4, handle) != 4) return 0;
+    if (fwrite(ip, sizeof(uint8_t), 4, handle) != 4) return 0;
 
     return 1;
 }
@@ -80,7 +80,7 @@ int write_domain_token_entry(FILE* h_domain2token, const char* domain, const cha
 
 int read_token_ip_entry(dns_map* map, FILE* h_token2ip) {
     char* token;
-    int8_t* ip;
+    uint8_t* ip;
 
     // Read token
     if (!read_string(h_token2ip, &token))
@@ -96,7 +96,7 @@ int read_token_ip_entry(dns_map* map, FILE* h_token2ip) {
     return 1;
 }
 
-int write_token_ip_entry(FILE* h_token2ip, const char* token, int8_t* ip) {
+int write_token_ip_entry(FILE* h_token2ip, const char* token, uint8_t* ip) {
 
     if (!write_string(h_token2ip, token))
         return 0;
@@ -130,6 +130,7 @@ dns_map* create_dns_map(FILE* h_domain2token, FILE* h_token2ip) {
 
     map->domain_to_token = create_hash_map(str_cmp);
     map->token_to_ip = create_hash_map(str_cmp);
+    map->tokens = create_hash_map(str_cmp);
 
     map->h_domain2token = h_domain2token;
     map->h_token2ip = h_token2ip;
@@ -140,15 +141,15 @@ dns_map* create_dns_map(FILE* h_domain2token, FILE* h_token2ip) {
     return map;
 }
 
-int8_t* dns_map_get_ipv4_from_token(dns_map* map, const char* token) {
-    return (int8_t*) hash_map_get(map->token_to_ip, (void*) token, strlen(token));
+uint8_t* dns_map_get_ipv4_from_token(dns_map* map, const char* token) {
+    return (uint8_t*) hash_map_get(map->token_to_ip, (void*) token, strlen(token));
 }
 
 char* dns_map_get_token_from_domain(dns_map* map, const char* domain) {
     return (char*) hash_map_get(map->domain_to_token, (void*) domain, strlen(domain));
 }
 
-int8_t* dns_map_get_ipv4_from_domain(dns_map* map, const char* domain) {
+uint8_t* dns_map_get_ipv4_from_domain(dns_map* map, const char* domain) {
     char* token = dns_map_get_token_from_domain(map, domain);
     if (token == NULL)
         return NULL;
@@ -156,11 +157,14 @@ int8_t* dns_map_get_ipv4_from_domain(dns_map* map, const char* domain) {
     return dns_map_get_ipv4_from_token(map, token);
 }
 
-int8_t* dns_map_put_ipv4(dns_map* map, const char* token, int8_t* ip, int flag_update) {
-    int8_t* old_ip = hash_map_put(map->token_to_ip, token, strlen(token), ip);
+uint8_t* dns_map_put_ipv4(dns_map* map, const char* token, uint8_t* ip, int flag_update) {
+    uint8_t* old_ip = hash_map_put(map->token_to_ip, token, strlen(token), ip);
 
     if (flag_update)
         write_token_ip_entry(map->h_token2ip, token, ip);
+
+    // TODO: implement this as a dynamic list
+    hash_map_put(map->tokens, (void*) token, strlen(token), (void*) 1);
 
     return old_ip;
 }
@@ -171,7 +175,14 @@ char* dns_map_put_token(dns_map* map, const char* domain, char* token, int flag_
     if (flag_update)
         write_domain_token_entry(map->h_domain2token, domain, token);
 
+    // TODO: implement this as a dynamic list
+    hash_map_put(map->tokens, (void*) token, strlen(token), (void*) 1);
+
     return old_token;
+}
+
+int dns_map_has_token(dns_map* map, const char* token) {
+    return hash_map_get(map->tokens, (void*) token, strlen(token)) != NULL;
 }
 
 void destroy_dns_map(dns_map* map) {

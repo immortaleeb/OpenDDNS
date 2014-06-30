@@ -4,6 +4,7 @@
 #include "threads/thread_args.h"
 #include "threads/dns_thread.h"
 #include "threads/console_thread.h"
+#include "threads/binding_thread.h"
 #include "map/dns_map.h"
 
 #define DOMAIN2TOKEN_FILENAME "domain2token.data"
@@ -17,7 +18,7 @@ int has_finished();
 
 int main(int argc, char** argv) {
     thread_args_t args;
-    pthread_t dns_thread, console_thread;
+    pthread_t dns_thread, binding_thread, console_thread;
     dns_map* map;
     FILE *h_domain2token, *h_token2ip;
     int res;
@@ -47,6 +48,13 @@ int main(int argc, char** argv) {
         return 3;
     }
 
+    // Create binding thread
+    res = pthread_create(&binding_thread, NULL, binding_thread_main, &args);
+    if (res) {
+        fprintf(stderr, "Error creating the binding thread: %d\n", res);
+        return 3;
+    }
+
     // Create console thread
     res = pthread_create(&console_thread, NULL, console_thread_main, &args);
     if (res) {
@@ -56,6 +64,7 @@ int main(int argc, char** argv) {
 
     // Wait for all threads to finish
     pthread_join(dns_thread, NULL);
+    pthread_join(binding_thread, NULL);
     pthread_join(console_thread, NULL);
 
     // Destroy the dns map
