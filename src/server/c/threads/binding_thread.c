@@ -130,7 +130,7 @@ void process_client_connection(int client_socket, struct sockaddr_in* client_add
 
     // Valid token, do update of IP here
     printf("Received valid token from client, updating IP\n");
-    dns_map_put_ipv4(map, req.token, (uint8_t*) &(client_addr->sin_addr.s_addr), 0);
+    dns_map_put_ipv4(map, received_token, (uint8_t*) &(client_addr->sin_addr.s_addr), 0);
 
     printf("IP updated, sending response to client\n");
     
