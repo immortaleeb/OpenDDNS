@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     pthread_join(console_thread, NULL);
 
     // Destroy the dns map
-    destroy_dns_map(map);
+    destroy_dns_map(map, 1, 1, 1);
 
     // Close open files
     fclose(h_domain2token);

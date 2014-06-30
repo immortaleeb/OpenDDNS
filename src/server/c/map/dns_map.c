@@ -185,9 +185,11 @@ int dns_map_has_token(dns_map* map, const char* token) {
     return hash_map_get(map->tokens, (void*) token, strlen(token)) != NULL;
 }
 
-void destroy_dns_map(dns_map* map) {
-    destroy_hash_map(map->domain_to_token);
-    destroy_hash_map(map->token_to_ip);
+void destroy_dns_map(dns_map* map, int free_domains, int free_tokens, int free_ips) {
+    destroy_hash_map(map->domain_to_token, free_domains, free_tokens);
+    destroy_hash_map(map->token_to_ip, 0, free_ips);
+
+    destroy_hash_map(map->tokens, 0, 0);
 
     free(map);
 }

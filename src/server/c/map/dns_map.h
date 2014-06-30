@@ -28,6 +28,6 @@ char* dns_map_put_token(dns_map* map, const char* domain, char* token, int flag_
 
 int dns_map_has_token(dns_map* map, const char* token);
 
-void destroy_dns_map(dns_map* map);
+void destroy_dns_map(dns_map* map, int free_domains, int free_tokens, int free_ips);
 
 #endif

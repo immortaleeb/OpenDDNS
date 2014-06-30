@@ -36,10 +36,13 @@ void* hash_map_get(hash_map* m, const void* key, int len);
 
 /**
  * Destroys the hash_map, by freeing allocated memory.
- * Note: this will not free the memory of any
- * allocated pointers saved in the keys or values,
- * this is the user's responsibility!
+ * If free_keys is set to 1, all keys inside the hash_map
+ * will be freed as well, otherwise these are left as the
+ * user's responsibility.
+ * If free_vals is set to 1, all values inside the hash_map
+ * will be freed as well, otherwise these are left as the
+ * user's responsibility.
  */
-void destroy_hash_map(hash_map* m);
+void destroy_hash_map(hash_map* m, int free_keys, int free_vals);
 
 #endif

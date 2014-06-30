@@ -120,7 +120,7 @@ void* hash_map_get(hash_map* m, const void* key, int len) {
     return NULL;
 }
 
-void destroy_hash_map(hash_map* m) {
+void destroy_hash_map(hash_map* m, int free_keys, int free_vals) {
     int i;
 
     for (i = 0; i < m->size; i++) {
@@ -128,10 +128,10 @@ void destroy_hash_map(hash_map* m) {
 
         while (entry != NULL) {
             hash_map_entry* temp = entry->next;
-            /* to free or not to free?
-            free(entry->key);
-            free(entry->value);
-            */
+
+            if (free_keys) free(entry->key);
+            if (free_vals) free(entry->value);
+
             free(entry);
             entry = temp;
         }
