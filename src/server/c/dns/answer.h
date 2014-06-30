@@ -9,8 +9,8 @@
 
 dnsmsg_t make_reply(dnsmsg_t question_message);
 dnsmsg_rr_t make_rr_reply(dnsmsg_question_t question, int* error_flag);
-dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, int16_t amount, int* error_flag);
-int32_t get_ttl(int8_t* name, int8_t name_size);
-int8_t* get_ip(int8_t* name, int8_t name_size, int* error_flag);
+dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, uint16_t amount, int* error_flag);
+uint32_t get_ttl(uint8_t* name, uint8_t name_size);
+uint8_t* get_ip(uint8_t* name, uint8_t name_size, int* error_flag);
 
 #endif /* ANSWER_H_ */

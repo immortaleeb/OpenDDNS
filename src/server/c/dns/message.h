@@ -16,7 +16,7 @@
 
 typedef struct dnsmsg_header {
 
-    int16_t id;
+    uint16_t id;
     /*
      * Flag name: bit size:
      * QR: 1
@@ -27,33 +27,33 @@ typedef struct dnsmsg_header {
      * Z: 4 (must be zero)
      * RCODE: 4
      */
-    int16_t status_flags;
-    int16_t query_count;
-    int16_t answer_count;
-    int16_t authority_count;
-    int16_t additional_count;
+    uint16_t status_flags;
+    uint16_t query_count;
+    uint16_t answer_count;
+    uint16_t authority_count;
+    uint16_t additional_count;
 
 } dnsmsg_header_t;
 
 typedef struct dnsmsg_question {
 
-    int8_t name_size;
-    int8_t* name; // NO PADDING IS REQUIRED!
-    int16_t type;
-    int16_t class;
+    uint8_t name_size;
+    uint8_t* name; // NO PADDING IS REQUIRED!
+    uint16_t type;
+    uint16_t class;
 
 } dnsmsg_question_t;
 
 // Resource record
 typedef struct dnsmsg_rr {
 
-    int8_t name_size;
-    int8_t* name; // NO PADDING IS REQUIRED!
-    int16_t type;
-    int16_t class;
-    int32_t ttl;
-    int16_t data_size;
-    int8_t* data; // NO PADDING IS REQUIRED!
+    uint8_t name_size;
+    uint8_t* name; // NO PADDING IS REQUIRED!
+    uint16_t type;
+    uint16_t class;
+    uint32_t ttl;
+    uint16_t data_size;
+    uint8_t* data; // NO PADDING IS REQUIRED!
 
 } dnsmsg_rr_t;
 
@@ -68,6 +68,6 @@ typedef struct dnsmsg {
 } dnsmsg_t;
 
 void free_message(dnsmsg_t message);
-void free_rr(dnsmsg_rr_t* rr, int16_t amount);
+void free_rr(dnsmsg_rr_t* rr, uint16_t amount);
 
 #endif /* MESSAGE_H_ */

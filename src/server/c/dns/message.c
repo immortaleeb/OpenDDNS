@@ -22,7 +22,7 @@ void free_message(dnsmsg_t message) {
 /**
  * Free everything inside a given resource record, including the allocated space for the rr itself.
  */
-void free_rr(dnsmsg_rr_t* rr, int16_t amount) {
+void free_rr(dnsmsg_rr_t* rr, uint16_t amount) {
     int i,j;
 
     for(i = 0; i < amount; i++) {

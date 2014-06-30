@@ -9,8 +9,8 @@
  * Convert a buffer to a DNS message.
  * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
-dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size, int* error_flag) {
-    int i, j;
+dnsmsg_t interpret_question(unsigned char* buffer, ssize_t buffer_size, int* error_flag) {
+    unsigned int i, j;
     dnsmsg_t message;
 
     message.header.id = pop_int16(&buffer, &buffer_size);
@@ -23,8 +23,8 @@ dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size, int* error_flag) 
     message.questions = malloc(sizeof(dnsmsg_question_t) * message.header.query_count);
     for(i = 0; i < message.header.query_count; i++) {
         message.questions[i].name_size = pop_int8(&buffer, &buffer_size);
-        message.questions[i].name = calloc(sizeof(int8_t), message.questions[i].name_size);
-        for(j = 0; j < message.questions[i].name_size; j++) {
+        message.questions[i].name = calloc(sizeof(uint8_t), message.questions[i].name_size + 1);
+        for(j = 0; j < message.questions[i].name_size + 1; j++) {
             message.questions[i].name[j] = pop_int8(&buffer, &buffer_size);
         }
         message.questions[i].type = pop_int16(&buffer, &buffer_size);
@@ -36,7 +36,7 @@ dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size, int* error_flag) 
     message.additionals = interpret_rr(message.header.additional_count, &buffer, &buffer_size);
 
     if(buffer_size < 0) {
-        fprintf(stderr, "Read invalid packet, ignoring.\n");
+        fprintf(stderr, "Read invalid packet, ignoring. (tried reading outside of buffer size)\n");
         *error_flag = 1;
     }
 
@@ -48,22 +48,22 @@ dnsmsg_t interpret_question(char* buffer, ssize_t buffer_size, int* error_flag) 
  * This will reduce the buffer_size by the amount of bytes read from the buffer.
  * The buffer will also be reduced to the part without the read resource records.
  */
-dnsmsg_rr_t* interpret_rr(int16_t amount, char** buffer, ssize_t* buffer_size) {
+dnsmsg_rr_t* interpret_rr(uint16_t amount, unsigned char** buffer, ssize_t* buffer_size) {
     int i, j;
     dnsmsg_rr_t* rr;
 
     rr = malloc(sizeof(dnsmsg_rr_t) * amount);
     for(i = 0; i < amount; i++) {
         rr[i].name_size = pop_int8(buffer, buffer_size);
-        rr[i].name = malloc(sizeof(int8_t) * rr[i].name_size);
-        for(j = 0; j < rr[i].name_size; j++) {
+        rr[i].name = malloc(sizeof(uint8_t) * rr[i].name_size + 1);
+        for(j = 0; j < rr[i].name_size + 1; j++) {
             rr[i].name[j] = pop_int8(buffer, buffer_size);
         }
         rr[i].type = pop_int16(buffer, buffer_size);
         rr[i].class = pop_int16(buffer, buffer_size);
         rr[i].ttl = pop_int32(buffer, buffer_size);
         rr[i].data_size = pop_int16(buffer, buffer_size);
-        rr[i].data = malloc(sizeof(int8_t) * rr[i].data_size);
+        rr[i].data = malloc(sizeof(uint8_t) * rr[i].data_size);
         for(j = 0; j < rr[i].data_size; j++) {
             rr[i].data[j] = pop_int8(buffer, buffer_size);
         }
@@ -76,8 +76,8 @@ dnsmsg_rr_t* interpret_rr(int16_t amount, char** buffer, ssize_t* buffer_size) {
  * Take the first 8 bits from the start of the buffer.
  * The buffer_size will then also be reduced by 1 byte.
  */
-int8_t pop_int8(char** buffer, ssize_t* buffer_size) {
-    int8_t value = 0;
+uint8_t pop_int8(unsigned char** buffer, ssize_t* buffer_size) {
+    uint8_t value = 0;
     (*buffer_size)--;
     if(*buffer_size >= 0) {
         value = *((*buffer)++);
@@ -89,7 +89,7 @@ int8_t pop_int8(char** buffer, ssize_t* buffer_size) {
  * Take the first 16 bits from the start of the buffer.
  * The buffer_size will then also be reduced by 2 bytes.
  */
-int16_t pop_int16(char** buffer, ssize_t* buffer_size) {
+uint16_t pop_int16(unsigned char** buffer, ssize_t* buffer_size) {
     return pop_int8(buffer, buffer_size) << 8 | pop_int8(buffer, buffer_size);
 }
 
@@ -97,7 +97,7 @@ int16_t pop_int16(char** buffer, ssize_t* buffer_size) {
  * Take the first 32 bits from the start of the buffer.
  * The buffer_size will then also be reduced by 4 bytes.
  */
-int32_t pop_int32(char** buffer, ssize_t* buffer_size) {
+uint32_t pop_int32(unsigned char** buffer, ssize_t* buffer_size) {
     return pop_int16(buffer, buffer_size) << 16 | pop_int16(buffer, buffer_size);
 }
 
@@ -107,9 +107,9 @@ int32_t pop_int32(char** buffer, ssize_t* buffer_size) {
  * This won't do any checks for whether the buffer size exceeds the maximum datagram size
  * for DNS packets, that's your own damn responsibility!
  */
-void serialize_message(dnsmsg_t message, char** buffer, ssize_t* buffer_size) {
+void serialize_message(dnsmsg_t message, unsigned char** buffer, ssize_t* buffer_size) {
     // The index will be incremented by one every place byte in the buffer.
-    int i, j, index;
+    unsigned int i, j, index;
     *buffer_size = calc_message_size(message);
     *buffer = malloc(*buffer_size);
 
@@ -124,7 +124,7 @@ void serialize_message(dnsmsg_t message, char** buffer, ssize_t* buffer_size) {
 
     for(i = 0; i < message.header.query_count; i++) {
         append_int8(buffer, &index, message.questions[i].name_size);
-        for(j = 0; j < message.questions[i].name_size; j++) {
+        for(j = 0; j < message.questions[i].name_size + 1; j++) {
             append_int8(buffer, &index, message.questions[i].name[j]);
         }
         append_int16(buffer, &index, message.questions[i].type);
@@ -142,13 +142,15 @@ void serialize_message(dnsmsg_t message, char** buffer, ssize_t* buffer_size) {
  * for the size calculation.
  */
 size_t calc_message_size(dnsmsg_t message) {
-    int i;
-    size_t size = sizeof(dnsmsg_t);
+    unsigned int i;
+    size_t size = sizeof(dnsmsg_header_t);
 
     // Referenced parts of question
-    size += message.header.query_count * sizeof(dnsmsg_question_t);
     for(i = 0; i < message.header.query_count; i++) {
-        size += message.questions[i].name_size * sizeof(int8_t);
+        size += sizeof(message.questions[i].name_size);
+        size += (message.questions[i].name_size + 1) * sizeof(uint8_t);
+        size += sizeof(message.questions[i].type);
+        size += sizeof(message.questions[i].class);
     }
 
     size += calc_resource_records_size(message.answers, message.header.answer_count);
@@ -161,13 +163,18 @@ size_t calc_message_size(dnsmsg_t message) {
 /**
  * Calculate the full size of a list of resource records.
  */
-size_t calc_resource_records_size(dnsmsg_rr_t* resource_records, int16_t amount) {
-    int i;
-    size_t size = amount * sizeof(dnsmsg_rr_t);
+size_t calc_resource_records_size(dnsmsg_rr_t* resource_records, uint16_t amount) {
+    unsigned int i;
+    size_t size = 0;
 
     for(i = 0; i < amount; i++) {
-        size += resource_records[i].name_size * sizeof(int8_t);
-        size += resource_records[i].data_size * sizeof(int8_t);
+        size += sizeof(resource_records[i].name_size);
+        size += (resource_records[i].name_size + 1) * sizeof(uint8_t);
+        size += sizeof(resource_records[i].type);
+        size += sizeof(resource_records[i].class);
+        size += sizeof(resource_records[i].ttl);
+        size += sizeof(resource_records[i].data_size);
+        size += resource_records[i].data_size * sizeof(uint8_t);
     }
 
     return size;
@@ -176,14 +183,14 @@ size_t calc_resource_records_size(dnsmsg_rr_t* resource_records, int16_t amount)
 /**
  * Append 8 bits to the buffer and increment the index by one.
  */
-void append_int8(char** buffer, int* index, int8_t value) {
+void append_int8(unsigned char** buffer, unsigned int* index, uint8_t value) {
     (*buffer)[(*index)++] = value;
 }
 
 /**
  * Append 16 bits to the buffer and increment the index by two.
  */
-void append_int16(char** buffer, int* index, int16_t value) {
+void append_int16(unsigned char** buffer, unsigned int* index, uint16_t value) {
     append_int8(buffer, index, value >> 8);
     append_int8(buffer, index, value & 255);
 }
@@ -191,7 +198,7 @@ void append_int16(char** buffer, int* index, int16_t value) {
 /**
  * Append 32 bits to the buffer and increment the index by four.
  */
-void append_int32(char** buffer, int* index, int32_t value) {
+void append_int32(unsigned char** buffer, unsigned int* index, uint32_t value) {
     append_int16(buffer, index, value >> 16);
     append_int16(buffer, index, value & 65535);
 }
@@ -199,12 +206,12 @@ void append_int32(char** buffer, int* index, int32_t value) {
 /**
  * Add a full list of resource records to the buffer and increment the index accordingly.
  */
-void append_resource_records(char** buffer, int* index, dnsmsg_rr_t* resource_records,
-        int16_t amount) {
-    int i, j;
+void append_resource_records(unsigned char** buffer, unsigned int* index, dnsmsg_rr_t* resource_records,
+        uint16_t amount) {
+    unsigned int i, j;
     for(i = 0; i < amount; i++) {
         append_int8(buffer, index, resource_records[i].name_size);
-        for(j = 0; j < resource_records[i].name_size; j++) {
+        for(j = 0; j < resource_records[i].name_size + 1; j++) {
             append_int8(buffer, index, resource_records[i].name[j]);
         }
         append_int16(buffer, index, resource_records[i].type);
@@ -228,7 +235,7 @@ void append_resource_records(char** buffer, int* index, dnsmsg_rr_t* resource_re
  * RA: 1 bit: (only valid in responses) if this server can accept recursive requests.
  * RCODE: 4 bits: see errorcodes in codes.h
  */
-int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int ra, int rcode) {
+uint16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int ra, int rcode) {
     int z = 0; // Must always be zero
     return qr << 15 | opcode << 11 | aa << 10 | tc << 9 | rd << 8 | ra << 5 | z << 4 | rcode;
 }
@@ -244,7 +251,7 @@ int16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int ra, 
  * RA: 1 bit: (only valid in responses) if this server can accept recursive requests.
  * RCODE: 4 bits: see errorcodes in codes.h
  */
-void decode_status_flags(int16_t status_flags , int* qr, int* opcode, int* aa, int* tc, int* rd, int* ra, int* rcode) {
+void decode_status_flags(uint16_t status_flags , int* qr, int* opcode, int* aa, int* tc, int* rd, int* ra, int* rcode) {
     *qr = (status_flags >> 15) & 1;
     *opcode = (status_flags >> 11) & 15;
     *aa = (status_flags >> 10) & 1;

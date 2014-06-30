@@ -16,12 +16,13 @@ dnsmsg_t make_reply(dnsmsg_t question_message) {
     int qr, opcode, aa, tc, rd, ra, rcode, return_error, search_ip_error_flag, send_tc;
     dnsmsg_t message;
     char* name = "testname";
+    search_ip_error_flag = 0;
     return_error = RCODE_NOERROR;
     send_tc = 0; // TODO: Truncation not yet implemented
 
     message.header.id = question_message.header.id;
     decode_status_flags(question_message.header.status_flags, &qr, &opcode, &aa, &tc, &rd, &ra, &rcode);
-    if(!qr) {
+    if(qr) {
         fprintf(stderr, "\nQuestion %i is not marked as question.", question_message.header.id);
         return_error = RCODE_FORMATERROR;
     }
@@ -30,7 +31,7 @@ dnsmsg_t make_reply(dnsmsg_t question_message) {
                 question_message.header.id);
         return_error = RCODE_FORMATERROR;
     }
-    if(!tc && !return_error) {
+    if(tc && !return_error) {
         fprintf(stderr, "\nQuestion %i is truncated, ignore (not implemented yet).",
                 question_message.header.id);
         return_error = RCODE_NOTIMPLEMENTED; // TODO
@@ -43,6 +44,8 @@ dnsmsg_t make_reply(dnsmsg_t question_message) {
     message.answers = make_rr_reply_all(question_message.questions,
             question_message.header.query_count, &search_ip_error_flag);
     if(search_ip_error_flag && !return_error) {
+        fprintf(stderr, "\nQuestion %i triggered a name error.",
+                question_message.header.id);
         return_error = RCODE_NAMEERROR;
     }
     message.header.status_flags = encode_status_flags(1, OPCODE_QUERY, 1, send_tc, rd, 0, return_error);
@@ -57,8 +60,8 @@ dnsmsg_t make_reply(dnsmsg_t question_message) {
 dnsmsg_rr_t make_rr_reply(dnsmsg_question_t question, int* error_flag) {
     dnsmsg_rr_t rr;
     rr.name_size = question.name_size;
-    rr.name = malloc(rr.name_size * sizeof(int8_t));
-    memcpy(rr.name, question.name, rr.name_size);
+    rr.name = malloc((rr.name_size + 1) * sizeof(uint8_t));
+    memcpy(rr.name, question.name, rr.name_size + 1);
     rr.type = question.type;
     rr.class = question.class;
 
@@ -77,7 +80,7 @@ dnsmsg_rr_t make_rr_reply(dnsmsg_question_t question, int* error_flag) {
  * Make resource record replies for all the given queries.
  * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
-dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, int16_t amount, int* error_flag) {
+dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, uint16_t amount, int* error_flag) {
     int i;
 
     dnsmsg_rr_t* rr = malloc(sizeof(dnsmsg_rr_t) * amount);
@@ -91,7 +94,7 @@ dnsmsg_rr_t* make_rr_reply_all(dnsmsg_question_t* question, int16_t amount, int*
 /**
  * Get the TTL for a given name.
  */
-int32_t get_ttl(int8_t* name, int8_t name_size) {
+uint32_t get_ttl(uint8_t* name, uint8_t name_size) {
     return HARD_TTL;
 }
 
@@ -100,8 +103,8 @@ int32_t get_ttl(int8_t* name, int8_t name_size) {
  * This is always one unsigned 32-bit value.
  * The error flag will be set to 1 if no ip address can be found for the question domain.
  */
-int8_t* get_ip(int8_t* name, int8_t name_size, int* error_flag) {
-    int8_t* ip = calloc(sizeof(int8_t), 4);
+uint8_t* get_ip(uint8_t* name, uint8_t name_size, int* error_flag) {
+    uint8_t* ip = calloc(sizeof(uint8_t), 4);
     ip[0] = 192;
     ip[1] = 168;
     ip[2] = 3;

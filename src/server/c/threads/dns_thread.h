@@ -16,8 +16,7 @@
 void* dns_thread_main(void* args);
 
 int initialize_listener(int* listen_socket);
-int send_buffer(char* buffer, ssize_t buffer_size, struct sockaddr* to, socklen_t to_size);
-void handle_datagram(char* buffer_in, ssize_t buffer_size_in, char** buffer_out,
+void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned char** buffer_out,
         ssize_t* buffer_size_out);
 int start_listener(int* listen_socket);
 

@@ -34,3 +34,6 @@ Debug/*
 # Build directories
 build/
 bin/
+
+# Generated files
+*.data
