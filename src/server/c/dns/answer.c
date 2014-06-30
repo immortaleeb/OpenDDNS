@@ -44,6 +44,7 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
     message.answers = make_rr_reply_all(question_message.questions,
             question_message.header.query_count, &search_ip_error_flag, map);
     if(!return_error) {
+        free_rr(message.answers, message.header.answer_count);
         message.header.answer_count = 0;
         if(search_ip_error_flag == 1) {
             fprintf(stderr, "\nQuestion %i triggered a name error.",
@@ -118,6 +119,7 @@ uint32_t get_ttl(dnsmsg_label_t* labels, uint16_t labels_size) {
 
 /**
  * Convert a set of DNS labels to a dot-separated domain name.
+ * This is null-terminated.
  */
 char* labels_to_domain(dnsmsg_label_t* labels, uint16_t labels_size) {
     unsigned int i, j, index;
@@ -128,7 +130,6 @@ char* labels_to_domain(dnsmsg_label_t* labels, uint16_t labels_size) {
     for(i = 0; i < labels_size; i++) {
         size += labels[i].name_size + 1;
     }
-    size--; // We don't need a '.' at the last position.
 
     domain = malloc(size * sizeof(char));
 
@@ -141,6 +142,7 @@ char* labels_to_domain(dnsmsg_label_t* labels, uint16_t labels_size) {
         domain[index] = 46; // A dot
         index++;
     }
+    domain[index] = 0; // Null-terminated.
 
     return domain;
 }
