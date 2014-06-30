@@ -43,8 +43,8 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
     message.header.additional_count = 0;
     message.answers = make_rr_reply_all(question_message.questions,
             question_message.header.query_count, &search_ip_error_flag, map);
-    if(!return_error) {
-        free_rr(message.answers, message.header.answer_count);
+    if(search_ip_error_flag && !return_error) {
+        //free_rr(message.answers, message.header.answer_count);
         message.header.answer_count = 0;
         if(search_ip_error_flag == 1) {
             fprintf(stderr, "\nQuestion %i triggered a name error.",
@@ -142,7 +142,7 @@ char* labels_to_domain(dnsmsg_label_t* labels, uint16_t labels_size) {
         domain[index] = 46; // A dot
         index++;
     }
-    domain[index] = 0; // Null-terminated.
+    domain[--index] = 0; // Null-terminated.
 
     return domain;
 }
@@ -155,9 +155,6 @@ char* labels_to_domain(dnsmsg_label_t* labels, uint16_t labels_size) {
 uint8_t* get_ip(dnsmsg_label_t* labels, uint16_t labels_size, int* error_flag, dns_map* map) {
     char *domain, *token;
     uint8_t* ip;
-
-    token = malloc(TOKEN_SIZE * sizeof(char));
-    ip = malloc(4 * sizeof(uint8_t));
 
     domain = labels_to_domain(labels, labels_size);
     token = dns_map_get_token_from_domain(map, domain);
