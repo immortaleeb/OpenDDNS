@@ -10,7 +10,7 @@ static unsigned int num_commands = 0;
 
 void console_init(unsigned int ncommands) {
     commands = malloc(sizeof(const char*) * ncommands);
-    functions = malloc(ncommands);
+    functions = malloc(sizeof(void (*)(int, char**)) * ncommands);
 }
 
 void console_destroy() {
