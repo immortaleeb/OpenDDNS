@@ -15,7 +15,6 @@
 dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
     int qr, opcode, aa, tc, rd, ra, rcode, return_error, search_ip_error_flag, send_tc;
     dnsmsg_t message;
-    //char* name = "testname";
     search_ip_error_flag = 0;
     return_error = RCODE_NOERROR;
     send_tc = 0; // TODO: Truncation not yet implemented
@@ -44,7 +43,7 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
     message.answers = make_rr_reply_all(question_message.questions,
             question_message.header.query_count, &search_ip_error_flag, map);
     if(search_ip_error_flag && !return_error) {
-        //free_rr(message.answers, message.header.answer_count);
+        free_rr(message.answers, message.header.answer_count);
         message.header.answer_count = 0;
         if(search_ip_error_flag == 1) {
             fprintf(stderr, "\nQuestion %i triggered a name error.",

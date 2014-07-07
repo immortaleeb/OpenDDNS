@@ -9,7 +9,9 @@ void free_labels(dnsmsg_label_t* labels, uint16_t labels_size) {
     for(i = 0; i < labels_size; i++) {
         free(labels[i].name);
     }
-    free(labels);
+    if(labels_size) {
+        free(labels);
+    }
 }
 
 /**
@@ -39,7 +41,8 @@ void free_rr(dnsmsg_rr_t* rr, uint16_t amount) {
 
     for(i = 0; i < amount; i++) {
         free_labels(rr[i].labels, rr[i].labels_size);
-        free(rr[i].data);
+        // The current implementation does not need free-ing of this data, because this is stored in a global hashmap.
+        //free(rr[i].data);
     }
     if(amount) {
         free(rr);

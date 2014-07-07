@@ -63,8 +63,8 @@ void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned 
 
         serialize_message(reply, buffer_out, buffer_size_out);
 
-        //free_message(question);
-        //free_message(reply);
+        free_message(question);
+        free_message(reply);
     }
 }
 
