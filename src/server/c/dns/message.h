@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // Properties of DNS as defined by RFC 1035
 #define PORT 53
@@ -77,5 +78,9 @@ typedef struct dnsmsg {
 void free_labels(dnsmsg_label_t* labels, uint16_t labels_size);
 void free_message(dnsmsg_t message);
 void free_rr(dnsmsg_rr_t* rr, uint16_t amount);
+
+void print_labels(dnsmsg_label_t* labels, uint16_t labels_size);
+void print_rr(dnsmsg_rr_t* rr, uint16_t rr_size);
+void print_message(dnsmsg_t message);
 
 #endif /* MESSAGE_H_ */

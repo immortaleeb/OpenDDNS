@@ -56,10 +56,13 @@ void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned 
         ssize_t* buffer_size_out, dns_map* map) {
     dnsmsg_t question, reply;
     int error_flag = 0;
-    printf("Hey, you there! I received a packet!\n");
+    printf("Received:\n");
     question = interpret_question(buffer_in, buffer_size_in, &error_flag);
+    print_message(question); // TODO: only if DEBUG
     if(!error_flag) {
+        printf("Replying:\n");
         reply = make_reply(question, map);
+        print_message(reply); // TODO: only if DEBUG
 
         serialize_message(reply, buffer_out, buffer_size_out);
 

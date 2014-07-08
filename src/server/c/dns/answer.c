@@ -22,16 +22,16 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
     message.header.id = question_message.header.id;
     decode_status_flags(question_message.header.status_flags, &qr, &opcode, &aa, &tc, &rd, &ra, &rcode);
     if(qr) {
-        fprintf(stderr, "\nQuestion %i is not marked as question.", question_message.header.id);
+        fprintf(stderr, "\nQuestion %i is not marked as question.\n", question_message.header.id);
         return_error = RCODE_FORMATERROR;
     }
     if(opcode != OPCODE_QUERY && !return_error) {
-        fprintf(stderr, "\nQuestion %i did ask for something else than a query operation.",
+        fprintf(stderr, "\nQuestion %i did ask for something else than a query operation.\n",
                 question_message.header.id);
         return_error = RCODE_FORMATERROR;
     }
     if(tc && !return_error) {
-        fprintf(stderr, "\nQuestion %i is truncated, ignore (not implemented yet).",
+        fprintf(stderr, "\nQuestion %i is truncated, ignore (not implemented yet).\n",
                 question_message.header.id);
         return_error = RCODE_NOTIMPLEMENTED; // TODO
     }
@@ -46,11 +46,11 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
         free_rr(message.answers, message.header.answer_count);
         message.header.answer_count = 0;
         if(search_ip_error_flag == 1) {
-            fprintf(stderr, "\nQuestion %i triggered a name error.",
+            fprintf(stderr, "\nQuestion %i triggered a name error.\n",
                     question_message.header.id);
             return_error = RCODE_NAMEERROR;
         } else if(search_ip_error_flag == 2) {
-            fprintf(stderr, "\nQuestion %i asked for a non-A type.",
+            fprintf(stderr, "\nQuestion %i asked for a non-A type.\n",
                     question_message.header.id);
             return_error = RCODE_NOTIMPLEMENTED;
         }
