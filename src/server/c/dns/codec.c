@@ -286,7 +286,7 @@ void append_resource_records(unsigned char** buffer, unsigned int* index, dnsmsg
  */
 uint16_t encode_status_flags(int qr, int opcode, int aa, int tc, int rd, int ra, int rcode) {
     int z = 0; // Must always be zero
-    return qr << 15 | opcode << 11 | aa << 10 | tc << 9 | rd << 8 | ra << 5 | z << 4 | rcode;
+    return qr << 15 | opcode << 11 | aa << 10 | tc << 9 | rd << 8 | ra << 7 | z << 4 | rcode;
 }
 
 /**
