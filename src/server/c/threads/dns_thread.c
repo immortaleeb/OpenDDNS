@@ -65,6 +65,12 @@ void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned 
         print_message(reply); // TODO: only if DEBUG
 
         serialize_message(reply, buffer_out, buffer_size_out);
+        // Set this to 0 to make sure that the questions inside this reply
+        // won't be freed, since it is only a shallow copy of the questions
+        // inside the original question and otherwise it will be freed twice.
+        // TODO: this could be improved though, by deep-copying the questions,
+        // which would reduce performance...
+        reply.header.query_count = 0;
 
         free_message(question);
         free_message(reply);

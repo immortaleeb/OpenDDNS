@@ -36,7 +36,10 @@ dnsmsg_t make_reply(dnsmsg_t question_message, dns_map* map) {
         return_error = RCODE_NOTIMPLEMENTED; // TODO
     }
 
-    message.header.query_count = 0;
+    // shallow copy of the questions, make sure we don't free it twice afterwards...
+    message.header.query_count = question_message.header.query_count;
+    message.questions = question_message.questions;
+
     message.header.answer_count = question_message.header.query_count;
     message.header.authority_count = 0;
     message.header.additional_count = 0;
