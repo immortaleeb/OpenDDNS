@@ -58,11 +58,15 @@ void handle_datagram(unsigned char* buffer_in, ssize_t buffer_size_in, unsigned 
     int error_flag = 0;
     printf("Received:\n");
     question = interpret_question(buffer_in, buffer_size_in, &error_flag);
-    print_message(question); // TODO: only if DEBUG
+    #ifdef DEBUG
+    print_message(question);
+    #endif
     if(!error_flag) {
         printf("Replying:\n");
         reply = make_reply(question, map);
-        print_message(reply); // TODO: only if DEBUG
+        #ifdef DEBUG
+        print_message(reply);
+        #endif
 
         serialize_message(reply, buffer_out, buffer_size_out);
         // Set this to 0 to make sure that the questions inside this reply

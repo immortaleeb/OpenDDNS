@@ -4,6 +4,11 @@ LDFLAGS :=
 
 export CC CFLAGS LDFLAGS
 
+DEBUG ?= 1
+ifeq (DEBUG, 1)
+	CC += -DDEBUG -g
+endif
+
 all: common client server
 
 common:

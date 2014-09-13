@@ -37,3 +37,4 @@ bin/
 
 # Generated files
 *.data
+/Debug

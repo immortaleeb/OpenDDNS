@@ -5,8 +5,10 @@
 #include "answer.h"
 #include "codec.h"
 
-// TODO: make this value dependent on the DEBUG definition
+#define HARD_TTL 300
+#ifdef DEBUG
 #define HARD_TTL 10
+#endif
 
 /**
  * Make a reply message given a question message.
